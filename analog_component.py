@@ -6,66 +6,57 @@ import numpy as np
 
 class AnalogComponent(object):
 
-    def __init__(self, name = "", comp_type = "", reference_file = "", skiprows = -1, gain_row = -1, units = "-1"):
-        self.name = name
-        self.comp_type = comp_type
+    def __init__(self, **kwargs):
+
+        self.name = kwargs.pop('name')
+        self.comp_type = kwargs.pop('comp_type')
 
         self.gain_data = [-1., -1]
         self.noise_data = [-1., -1]
 
         self.filled_data = False
         self.filled_noise_data = False
+        
+        if kwargs['gain_reference_file'] != "":
+            self.fill_gain_array(**kwargs)
 
-        self.OIP3_data = np.zeros((2, 0)) + -999.
-        self.OIP3_filled = False
-        self.comp_data = np.zeros((2, 0)) + -999.
-        self.output_compression_filled = False
-
-
-        if reference_file != "":
-            self.fill_data_array(reference_file, skiprows, gain_row, units)
-            if comp_type == "filter":
-                self.fill_filter_noise_figure()
-            elif comp_type == "attenuator":
-                self.fill_attn_noise_figure()
+#        if reference_file != "":
+#            self.fill_data_array(reference_file, skiprows, gain_row, units)
+#            if comp_type == "filter":
+#                self.fill_filter_noise_figure()
+#            elif comp_type == "attenuator":
+#                self.fill_attn_noise_figure()
             
-
-    def fill_amplifier_array(self, reference_file, skiprows, comp_row, OIP3_row, units = "-1"):
-
-        data = np.loadtxt(reference_file, skiprows=skiprows, unpack=1)
-
-        if units == "Hz":
-            self.comp_data = np.array([data[0], data[comp_row]])
-            self.OIP3_data = np.array([data[0], data[OIP3_row]])
-        elif units == "MHz":
-            self.comp_data = np.array([data[0] * 1.e6, data[comp_row]])
-            self.OIP3_data = np.array([data[0] * 1.e6, data[OIP3_row]])
-
-        self.OIP3_filled = True
-        self.output_compression_filled = True
-
-    def fill_data_array(self, reference_file, skiprows, gain_row, units):
+    def fill_gain_array(self, **kwargs):#reference_file, skiprows, gain_row, units):
         '''
         Fill data array with information from a reference file.
+        Assumes that in the file the first column is frequency 
+        and the gain row is passed as a parameter.
         '''
+
+        reference_file = kwargs['gain_reference_file']
+        skiprows = kwargs['gain_file_skiprows']
+        gain_row = kwargs['gain_row']
+        units = kwargs['gain_file_units']
                 
         data = np.loadtxt(reference_file, skiprows=skiprows, unpack=1)
-        if units == "Hz":
-            self.gain_data = np.array([data[0], data[gain_row]])
-        elif units == "MHz":
-            self.gain_data = np.array([data[0] * 1.e6, data[gain_row]])
+
+        if units == "MHz":
+            data[0] = data[0] * 1.e6
+
+        self.gain_data = np.array([data[0] * 1.e6, data[gain_row]])
 
         self.filled_data = True
 
-    def set_data_array(self, f, g):
+    def set_data_array(self, freq, gain):
         '''
         Fill data array manually.
         params: 
-            f: frequency array
-            g: gain array
+            freq: frequency array
+            gain: gain array
         '''
         self.filled_data = True 
-        self.gain_data = [np.array(f), np.array(g)]
+        self.gain_data = [np.array(freq), np.array(gain)]
 
     def fill_attn_noise_figure(self):
         '''
@@ -99,51 +90,57 @@ class AnalogComponent(object):
         self.filled_noise_data = True
 
 
-    def set_noise_figure(self, f, noise_figure):
+    def set_noise_figure(self, freq, noise_figure):
         '''
         Manually set noise figure data array
         '''
-        self.noise_data = [np.array(f), np.array(noise_figure)]
+        self.noise_data = [np.array(freq), np.array(noise_figure)]
         self.filled_noise_data = True
 
         
-    def get_gain(self, f):
+    def get_gain(self, freq):
         '''
         Return gain of analog component at frequency f
         '''
-        return np.interp(f, self.gain_data[0], self.gain_data[1])
+        return np.interp(freq, self.gain_data[0], self.gain_data[1])
 
-    def get_OIP3(self, f):
+    def get_OIP3(self, freq):
         '''
         Return gain of analog component at frequency f
         '''
+
         if self.comp_type == "amplifier":
-            return np.interp(f, self.OIP3_data[0], self.OIP3_data[1])        
+            return np.interp(freq, self.OIP3_data[0], self.OIP3_data[1])        
         else:
-            return 99.
+            return None
 
-    def get_compression_point(self, f):
+    def get_compression_point(self, freq):
         '''
         Return compression point of analog component at frequency f
         '''
+
         if self.comp_type == "amplifier":
-            return np.interp(f, self.comp_data[0], self.comp_data[1])    
+            return np.interp(freq, self.comp_data[0], self.comp_data[1])    
         else:
-            return 999
+            return None
 
-    def get_NF(self, f):  
+    def get_NF(self, freq):  
         '''
-        Return the noise figure of a component at frequency f
+        Return the noise figure of a component at a specified frequency.
         '''
 
-        return np.interp(f, self.noise_data[0], self.noise_data[1])
+        return np.interp(freq, self.noise_data[0], self.noise_data[1])
 
-    def get_noise_temperature(self, f):
+    def get_noise_temperature(self, freq):
+
+        '''
+        Calculate the noise temperature of a component at a given frequency.
+        '''
         
-        NF = np.interp(f, self.noise_data[0], self.noise_data[1])
-        T = ((10.**(NF / 10.)) - 1. ) * (273.15 + 16.85)
+        noise_figure = self.get_NF(freq) 
+        temperature = ((10.**(noise_figure / 10.)) - 1.) * (273.15 + 16.85)
 
-        return T
+        return temperature
 
 
 
@@ -155,6 +152,9 @@ class Cable(AnalogComponent):
         self.k1 = kwargs.pop('k1')
         self.k2 = kwargs.pop('k2')        
         self.length = kwargs.pop('length') #meters
+        kwargs['comp_type'] = "cable"
+        kwargs['gain_reference_file'] = ""
+
         super(Cable, self).__init__(**kwargs)
         
         test_freq = np.linspace(0.1e6, 3200.e6, 32000)
@@ -178,7 +178,39 @@ class Amplifier(AnalogComponent):
 
     def __init__(self, **kwargs):
 
+        kwargs['comp_type'] = "amplifier"
         self.k = 1
+        super(Amplifier, self).__init__(**kwargs)      
+
+        self.OIP3_data = np.zeros((2, 0)) + -999.
+        self.OIP3_filled = False
+
+        self.comp_data = np.zeros((2, 0)) + -999.
+        self.output_compression_filled = False  
+
+        self.fill_amplifier_array(**kwargs)
+
+    def fill_amplifier_array(self, **kwargs):
+        reference_file = kwargs['amplifier_reference_file']
+        skiprows = kwargs['amplifier_file_skiprows'] 
+        units = kwargs['amplifier_units']
+        
+        NF_row = kwargs['NF_row']
+        comp_row = kwargs['comp_row'] 
+        OIP3_row = kwargs['OIP3_row']
+
+        data = np.loadtxt(reference_file, skiprows=skiprows, unpack=1)
+
+        if units == "MHz":
+            data[0] = data[0] * 1.e6
+            
+        self.noise_data = np.array([data[0], data[NF_row]])
+        self.comp_data = np.array([data[0], data[comp_row]])
+        self.OIP3_data = np.array([data[0], data[OIP3_row]])
+
+        self.OIP3_filled = True
+        self.output_compression_filled = True
+        self.filled_noise_data = True
 
 
 class Attenuator(AnalogComponent):
@@ -188,4 +220,38 @@ class Attenuator(AnalogComponent):
 
     def __init__(self, **kwargs):
 
-        self.k = 1        
+        kwargs['comp_type'] = "attenuator"
+        self.k = 1
+        super(Attenuator, self).__init__(**kwargs)        
+        self.fill_attn_noise_figure()
+
+    def fill_attn_noise_figure(self):
+        '''
+        Automattically fill noise figure data array.
+        For an attenuator, NF = attenuation = -1 * gain
+        '''
+        self.noise_data[0] = np.array(self.gain_data[0])
+        self.noise_data[1] = np.array(-self.gain_data[1])
+        self.filled_noise_data = True
+
+
+class Filter(AnalogComponent):
+    '''
+    Filter subclass of AnalogComponent. 
+    Is similar to an attenduator but has no noise figure.
+    '''
+    
+    def __init__(self, **kwargs):
+        self.k = 1
+        kwargs['comp_type'] = "filter"        
+        super(Filter, self).__init__(**kwargs)        
+
+    def fill_filter_noise_figure(self):
+        '''
+        Automattically fill noise figure data array.
+        For a purely capacitative filter, NF = 0.
+        '''
+
+        self.noise_data[0] = np.array(self.gain_data[0])
+        self.noise_data[1] = np.array(np.zeros(len(self.gain_data[0])))
+        self.filled_noise_data = True      

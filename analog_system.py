@@ -4,6 +4,8 @@ import numpy as np
 import analog_component
 from analog_component import AnalogComponent
 from analog_component import Cable
+from analog_component import Amplifier
+from analog_component import Attenuator
 
 
 component_path = os.path.split(os.path.abspath(analog_component.__file__))[0]
@@ -196,7 +198,7 @@ def attenuator(attenuation):
     
     return atten    
 
-
+'''
 def build_LNA():
     #lna = AC("LNA","amplifier","/home/sean/work/cosmology/suit/analog_files/data/lna/LNA.S2P", skiprows=13, gain_row=3, units="Hz")
     lna = AnalogComponent("LNA","amplifier",component_path + "/data/lna/LNA_noise.txt", skiprows=2, gain_row=1, units="MHz")
@@ -209,7 +211,55 @@ def build_AMP():
     amp.fill_noise_figure(component_path + "/data/amp/ampNOISE.txt", skiprows=1, noise_figure_row=6, units="MHz")
     amp.fill_amplifier_array(component_path + "/data/amp/ampNOISE.txt", skiprows=2, comp_row=-1, OIP3_row=-3, units="MHz")
     return amp
+'''
 
+def build_LNA():
+
+    spec_dict = {}
+    spec_dict['name'] = "LNA"
+    spec_dict['gain_reference_file'] = component_path + "/data/lna/LNA_noise.txt"
+
+    spec_dict['gain_file_units'] = "Hz"
+    spec_dict['gain_file_skiprows'] = 13
+    spec_dict['gain_row'] = 3
+
+    spec_dict['amplifier_reference_file'] = component_path + "/data/lna/LNA_noise.txt"
+    spec_dict['amplifier_file_skiprows'] = 2    
+    spec_dict['amplifier_units'] = "MHz"
+    spec_dict['NF_row'] = -1
+    spec_dict['comp_row'] = -2
+    spec_dict['OIP3_row'] = -3
+
+
+    lna = Amplifier(**spec_dict)
+
+
+    return lna
+
+
+def build_AMP():
+    
+    spec_dict = {}
+    spec_dict['name'] = "AMP"
+    spec_dict['gain_reference_file'] = component_path + "/data/amp/amp.S2P"
+
+    spec_dict['gain_file_units'] = "MHz"
+    spec_dict['gain_file_skiprows'] = 13
+    spec_dict['gain_row'] = 3
+
+    spec_dict['amplifier_reference_file'] = component_path + "/data/amp/ampNOISE.txt"
+    spec_dict['amplifier_file_skiprows'] = 2    
+    spec_dict['amplifier_units'] = "MHz"
+    spec_dict['NF_row'] = 6
+    spec_dict['comp_row'] = -1
+    spec_dict['OIP3_row'] = -3
+
+
+    lna = Amplifier(**spec_dict)
+
+
+    return lna    
+'''
 def build_LMR400(length):
     cable = AnalogComponent("LMR-400", "attenuator")
     #LMR-400; length
@@ -218,7 +268,7 @@ def build_LMR400(length):
     cable.set_data_array(freq, (length / 100.)*gain)
     cable.fill_attn_noise_figure()
     return cable
-
+'''
 
 def build_chime_filter():
     '''
@@ -304,7 +354,7 @@ def build_cable(name, k1, k2, length):
 
 LNA = build_LNA()
 AMP = build_AMP()
-LMR400 = build_LMR400(30.)
+LMR400 = build_cable("LMR-400", 0.122290, 0.000260, 30.)
 CHIMEFILTER = build_chime_filter()
 low340_filter = build_low340_filter()
 high875_filter = build_high875_filter()
