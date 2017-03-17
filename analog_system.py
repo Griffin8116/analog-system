@@ -3,6 +3,7 @@ import numpy as np
 
 import analog_component
 from analog_component import AnalogComponent
+from analog_component import Cable
 
 
 component_path = os.path.split(os.path.abspath(analog_component.__file__))[0]
@@ -45,51 +46,33 @@ def refer_component_temp_to_input(chain, component_index, freq):
     '''
     Refer the noise temperature of a single component in a chain to the input of the chain.
     '''
+
     component_temperature = chain[component_index].get_noise_temperature(freq)
     
     gain = calc_gain_before_component(chain, component_index, freq, True)
     
     return component_temperature / gain        
 
-def calc_Tchain_at_freq(chain, freq):
+
+def calc_noise_power_before_component(chain, component_index, freq):
     '''
-    Calculate the reciever noise temperature T_R at 
-    the input of the first component in the chain for a number frequencies f.
+    Calculate noise power at the input to a component. 
     '''
+    kB = 1.380648522000 * pow(10.,-23.) # J / K
 
-    receiver_temperature = np.empty(len(freq))
-
-    for i, frequency in enumerate(freq):       
-
-        temperatures = np.array([c.get_noise_temperature(frequency) for c in chain])
-        gains = np.array([c.get_gain(frequency) for c in chain])
-            
-        receiver_temperature[i] = calc_Tchain(temperatures, gains, verbose=False) 
-
-    return receiver_temperature
-
-def calc_T_at_component_at_freq(chain, component_index, freq):
-    '''
-    Calculate the noise temperature of the system referenced to a point at index 'component'. 
-    '''
+    pre_gain = calc_gain_before_component(chain, component_index, freq, True)
     
-    component_temp = np.empty(len(freq))
+    if component_index > 0:
+        T_before_index_at_input = np.zeros(len(freq))
+        for i in xrange(component_index):
+            T_before_index_at_input += refer_component_temp_to_input(chain, i, freq)
+    else:
+        T_before_index_at_input = np.array([0.])
     
-    for i, frequency in enumerate(freq):
-        #temperatures = np.array([])
-        #gains = np.array([])
-        temperatures = np.empty(len(chain))
-        gains = np.empty(len(chain))
+    noise_power_at_component = T_before_index_at_input * kB * pre_gain
 
-        for j, component in enumerate(chain):
-            #temperatures = np.append(temperatures, component.get_noise_temperature(frequency))
-            #gains = np.append(gains, component.get_gain(frequency))
-            temperatures[j] = component.get_noise_temperature(frequency)
-            gains[j] = component.get_gain(frequency)
+    return noise_power_at_component
 
-        component_temp[i] = calc_T_at_component(temperatures, gains, component_index)
-
-    return component_temp
 
 
 def calc_Tchain(temperatures=[3], gains=[3, 5], verbose=False):
@@ -128,10 +111,10 @@ def calc_Tchain(temperatures=[3], gains=[3, 5], verbose=False):
     return temperature_total
 
 
-def calc_Tchain_fast(chain, freq):
+def calc_chain_temperature(chain, freq):
     (gains, temperatures) = np.array(zip(*[[i.get_gain(freq), i.get_noise_temperature(freq)] for i in chain]))
    
-    return [calc_Tchain(temperatures[:,i], gains[:,i], False) for i in range(len(freq))]   
+    return np.array([calc_Tchain(temperatures[:,i], gains[:,i], False) for i in range(len(freq))])
 
 
 def calc_T_at_component(temperatures=[3], gains=[3, 5], component = 0, verbose = False):
@@ -156,6 +139,31 @@ def calc_T_at_component(temperatures=[3], gains=[3, 5], component = 0, verbose =
                  
     return Tdex
 
+
+def calc_T_at_component_at_freq(chain, component_index, freq):
+    '''
+    Calculate the noise temperature of the system referenced to a point at index 'component'. 
+    '''
+    
+    component_temp = np.empty(len(freq))
+    
+    for i, frequency in enumerate(freq):
+        #temperatures = np.array([])
+        #gains = np.array([])
+        temperatures = np.empty(len(chain))
+        gains = np.empty(len(chain))
+
+        for j, component in enumerate(chain):
+            #temperatures = np.append(temperatures, component.get_noise_temperature(frequency))
+            #gains = np.append(gains, component.get_gain(frequency))
+            temperatures[j] = component.get_noise_temperature(frequency)
+            gains[j] = component.get_gain(frequency)
+
+        component_temp[i] = calc_T_at_component(temperatures, gains, component_index)
+
+    return component_temp
+
+        
 def print_chain(chain):
     '''
     Print the names of the components in an AnalogComponent chain.
@@ -169,24 +177,25 @@ def print_chain(chain):
     
     print components
 
-def attenuator(dB):
+def attenuator(attenuation):
     '''
     Build an attenuator with attenuation of specified value
     '''
 
-    if dB - int(dB) == 0:
-        name = "atten-%i" % (int(dB))
+    if attenuation - int(attenuation) == 0:
+        name = "atten-%i" % (int(attenuation))
     else:
-        name = "atten-%.1f" % (dB)
+        name = "atten-%.1f" % (attenuation)
     atten = AnalogComponent(name, "attenuator")
     
     freq = np.logspace(-2, 3, 1000.)
-    attenuation = np.zeros(len(freq)) - dB
+    attenuation = np.zeros(len(freq)) - attenuation
            
     atten.set_data_array(freq, attenuation)
     atten.fill_attn_noise_figure()
     
     return atten    
+
 
 def build_LNA():
     #lna = AC("LNA","amplifier","/home/sean/work/cosmology/suit/analog_files/data/lna/LNA.S2P", skiprows=13, gain_row=3, units="Hz")
@@ -212,6 +221,9 @@ def build_LMR400(length):
 
 
 def build_chime_filter():
+    '''
+    Build a CHIME filter object.
+    '''
     chime_filter = AnalogComponent("CHIMEFILTER", "filter",
                                    component_path + "/data/chime_filter/chimefilter.S2P", 
                                    skiprows=11, 
@@ -241,10 +253,10 @@ def build_high875_filter():
 
 def build_FM_filter():
     fm_filter = AnalogComponent("FM_filter", "filter",
-                                     component_path + "/data/fm_filter/FM_filter_25deg.S2P", 
-                                     skiprows=18, 
-                                     gain_row=3,
-                                     units="MHz")
+                                component_path + "/data/fm_filter/FM_filter_25deg.S2P", 
+                                skiprows=18, 
+                                gain_row=3,
+                                units="MHz")
     
     fm_filter.fill_filter_noise_figure()
     return fm_filter    
@@ -278,11 +290,21 @@ def build_chime_ADC():
 
     return ADC
 
+def build_cable(name, k1, k2, length):
+    kwargs = {}
+    kwargs['name'] = name
+    kwargs['k1'] = k1
+    kwargs['k2'] = k2
+    kwargs['length'] = length
+    cable = Cable(**kwargs)
+
+    return cable
+
 
 
 LNA = build_LNA()
 AMP = build_AMP()
-CABLE = build_LMR400(30.)
+LMR400 = build_LMR400(30.)
 CHIMEFILTER = build_chime_filter()
 low340_filter = build_low340_filter()
 high875_filter = build_high875_filter()

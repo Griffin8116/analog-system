@@ -2,12 +2,11 @@
 Analog component class definition.
 '''
 
-
 import numpy as np
 
 class AnalogComponent(object):
 
-    def __init__(self, name, comp_type, reference_file = "", skiprows = -1, gain_row = -1, units = "-1"):
+    def __init__(self, name = "", comp_type = "", reference_file = "", skiprows = -1, gain_row = -1, units = "-1"):
         self.name = name
         self.comp_type = comp_type
 
@@ -145,3 +144,48 @@ class AnalogComponent(object):
         T = ((10.**(NF / 10.)) - 1. ) * (273.15 + 16.85)
 
         return T
+
+
+
+
+class Cable(AnalogComponent):
+
+    def __init__(self, **kwargs):
+        
+        self.k1 = kwargs.pop('k1')
+        self.k2 = kwargs.pop('k2')        
+        self.length = kwargs.pop('length') #meters
+        super(Cable, self).__init__(**kwargs)
+        
+        test_freq = np.linspace(0.1e6, 3200.e6, 32000)
+        self.set_data_array(test_freq, -self.cable_atten(test_freq) * self.length / 100.) 
+        self.fill_attn_noise_figure()
+
+
+    def cable_atten(self, freq):  
+        '''
+        Return attenuation in dB / 100 m
+        '''
+        unit_conv = 3.2808399 #ft per m
+
+        atten = self.k1 * np.sqrt(freq / 1.e6) + self.k2 * freq / 1.e6 #dB / 100 ft
+        return atten * unit_conv # (1/ft) * (ft/m) = 1 / m
+
+class Amplifier(AnalogComponent):
+    '''
+    Amplifier subclass of AnalogComponent
+    '''
+
+    def __init__(self, **kwargs):
+
+        self.k = 1
+
+
+class Attenuator(AnalogComponent):
+    '''
+    Attenuator subclass of AnalogComponent
+    '''
+
+    def __init__(self, **kwargs):
+
+        self.k = 1        
