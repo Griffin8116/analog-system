@@ -61,7 +61,7 @@ def calc_noise_power_before_component(chain, component_index, freq):
     '''
     Calculate noise power at the input to a component. 
     '''
-    kB = 1.380648522000 * pow(10.,-23.) # J / K
+    BOLTZMANN_CONSTANT = 1.380648522000 * pow(10.,-23.) # J / K
 
     pre_gain = calc_gain_before_component(chain, component_index, freq, True)
     
@@ -72,7 +72,7 @@ def calc_noise_power_before_component(chain, component_index, freq):
     else:
         T_before_index_at_input = np.array([0.])
     
-    noise_power_at_component = T_before_index_at_input * kB * pre_gain
+    noise_power_at_component = T_before_index_at_input * BOLTZMANN_CONSTANT * pre_gain
 
     return noise_power_at_component
 
@@ -157,8 +157,6 @@ def calc_T_at_component_at_freq(chain, component_index, freq):
         gains = np.empty(len(chain))
 
         for j, component in enumerate(chain):
-            #temperatures = np.append(temperatures, component.get_noise_temperature(frequency))
-            #gains = np.append(gains, component.get_gain(frequency))
             temperatures[j] = component.get_noise_temperature(frequency)
             gains[j] = component.get_gain(frequency)
 
@@ -183,20 +181,8 @@ def print_chain(chain):
 def attenuator(attenuation):
     '''
     Build an attenuator with attenuation of specified value.
-
-
-    if attenuation - int(attenuation) == 0:
-        name = "atten-%i" % (int(attenuation))
-    else:
-        name = "atten-%.1f" % (attenuation)
-    atten = AnalogComponent(name, "attenuator")
-    
-    freq = np.logspace(-2, 3, 1000.)
-    attenuation = np.zeros(len(freq)) - attenuation
-           
-    atten.set_data_array(freq, attenuation)
-    atten.fill_attn_noise_figure()
     '''
+
     if attenuation - int(attenuation) == 0:
         name = "atten-%i" % (int(attenuation))
     else:
@@ -272,13 +258,6 @@ def build_chime_filter():
     spec_dict['gain_file_skiprows'] = 11
     spec_dict['gain_row'] = 3
 
-
-    #chime_filter = AnalogComponent("CHIMEFILTER", "filter",
-    #                               component_path + "/data/chime_filter/chimefilter.S2P", 
-    #                               skiprows=11, 
-    #                               gain_row=3,
-    #                               units="MHz")
-    #chime_filter.fill_filter_noise_figure()
     chime_filter = Filter(**spec_dict)
     return chime_filter
 
@@ -292,23 +271,10 @@ def build_low340_filter():
     spec_dict['gain_file_skiprows'] = 19
     spec_dict['gain_row'] = 3
 
-    #low340_filter = AnalogComponent("low340_filter", "filter",
-    #                                component_path + "/data/low340_filter/low_filter.S2P", 
-    #                                skiprows=19, 
-    #                                gain_row=3,
-    #                                units="MHz")
-    #low340_filter.fill_filter_noise_figure()
     return Filter(**spec_dict)
 
 
 def build_high875_filter():
-    #high875_filter = AnalogComponent("high875_filter", "filter",
-    #                                 component_path + "/data/high875_filter/high875_filter.txt", 
-    #                                 skiprows=1, 
-    #                                 gain_row=2,
-    #                                 units="MHz")
-    #high875_filter.gain_data[1] = -1*high875_filter.gain_data[1] #correct sign of insertion loss
-    #high875_filter.fill_filter_noise_figure()
 
     spec_dict = {}
     spec_dict['name'] = "high875_filter"
@@ -318,24 +284,17 @@ def build_high875_filter():
     spec_dict['gain_file_skiprows'] = 1
     spec_dict['gain_row'] = 2
 
-    #low340_filter = AnalogComponent("low340_filter", "filter",
-    #                                component_path + "/data/low340_filter/low_filter.S2P", 
-    #                                skiprows=19, 
-    #                                gain_row=3,
-    #                                units="MHz")
-    #low340_filter.fill_filter_noise_figure()
     return Filter(**spec_dict)
     
 
 def build_FM_filter():
-    fm_filter = Filter(name="FM_filter",
+    fm_filter = 
+    
+    return Filter(name="FM_filter",
                        gain_reference_file=component_path + "/data/fm_filter/FM_filter_25deg.S2P", 
                        gain_file_skiprows=18, 
                        gain_row=3,
-                       gain_file_units="MHz")
-    
-    #fm_filter.fill_filter_noise_figure()
-    return fm_filter    
+                       gain_file_units="MHz")    
 
 
 def build_chime_ADC():
@@ -425,34 +384,127 @@ TUNABLE3 = Filter(name="tunable3",
                  )
 
 
+TUNABLE0_ENC = Filter(name="tunable0_enc", 
+                      gain_reference_file=\
+                      "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/TE0.s2p",
+                      gain_file_skiprows=15,
+                      gain_row=3,
+                      gain_file_units="Hz"
+                     )
+
+TUNABLE1_ENC = Filter(name="tunable1_enc", 
+                      gain_reference_file=\
+                      "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/TE1.s2p",
+                      gain_file_skiprows=15,
+                      gain_row=3,
+                      gain_file_units="Hz"
+                     )
+
+TUNABLE2_ENC = Filter(name="tunable2_enc", 
+                      gain_reference_file=\
+                      "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/TE2.s2p",
+                      gain_file_skiprows=15,
+                      gain_row=3,
+                      gain_file_units="Hz"
+                     )
+
+TUNABLE3_ENC = Filter(name="tunable3_enc", 
+                      gain_reference_file=\
+                      "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/TE3.s2p",
+                      gain_file_skiprows=15,
+                      gain_row=3,
+                      gain_file_units="Hz"
+                     )
+
+
+FM_FILTER = Filter(name="FM_filter",
+                   gain_reference_file=component_path + "/data/fm_filter/FM_filter_25deg.S2P", 
+                   gain_file_skiprows=18, 
+                   gain_row=3,
+                   gain_file_units="MHz")
+   
+
+#TEST_FREQ = np.linspace(0.1e6, 3200.e6, 3200)
+TEST_AMP = Amplifier(name="test_amp",
+                     gain_reference_file=component_path + "/data/test_amp/ampNOISE.txt",
+                     gain_file_skiprows=1,
+                     gain_row=1,
+                     gain_file_units="Hz",
+                     amplifier_reference_file=component_path + "/data/test_amp/ampNOISE.txt",
+                     amplifier_file_skiprows=1,
+                     amplifier_units="Hz",
+                     NF_row=-1,
+                     comp_row=-1,
+                     OIP3_row=-1
+                    )
+
+BP_filters = []
+
+for i in [1, 2, 3, 5, 6, 8, 9]:
+
+  BP = Filter(name="mnt_tuned_{0:d}".format(i), 
+              gain_reference_file=\
+              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/F{0:d}.s2p".format(i),
+              gain_file_skiprows=15,
+              gain_row=3,
+              gain_file_units="Hz"
+             )
+
+  BP_filters.append(BP)
+
 '''
-TUNABLE0 = AnalogComponent("tunable0", "filter", 
-                "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/FILTER0.s2p",
-                 skiprows=15,
-                 gain_row=3,
-                 units="Hz")
-TUNABLE0.fill_filter_noise_figure()
+BP_1 = Filter(name="mnt_tuned_1", 
+              gain_reference_file=\
+              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P1.s2p",
+              gain_file_skiprows=15,
+              gain_row=3,
+              gain_file_units="Hz"
+             )
 
-TUNABLE1 = AnalogComponent("tunable1", "filter", 
-                "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/FILTER1.s2p",
-                 skiprows=15,
-                 gain_row=3,
-                 units="Hz")
-TUNABLE1.fill_filter_noise_figure()
+BP_2 = Filter(name="mnt_tuned_2", 
+              gain_reference_file=\
+              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P2.s2p",
+              gain_file_skiprows=15,
+              gain_row=3,
+              gain_file_units="Hz"
+             )
 
-TUNABLE2 = AnalogComponent("tunable2", "filter", 
-                "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/FILTER2.s2p",
-                 skiprows=15,
-                 gain_row=3,
-                 units="Hz")
-TUNABLE2.fill_filter_noise_figure()
+BP_3 = Filter(name="mnt_tuned_3", 
+              gain_reference_file=\
+              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P3.s2p",
+              gain_file_skiprows=15,
+              gain_row=3,
+              gain_file_units="Hz"
+             )
 
-TUNABLE3 = AnalogComponent("tunable3", "filter", 
-                "/home/sean/work/cosmology/suit/analog_files/data/tuned_655/FILTER3.s2p",
-                 skiprows=15,
-                 gain_row=3,
-                 units="Hz")
-TUNABLE3.fill_filter_noise_figure()
+BP_4 = Filter(name="mnt_tuned_4", 
+              gain_reference_file=\
+              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P4.s2p",
+              gain_file_skiprows=15,
+              gain_row=3,
+              gain_file_units="Hz"
+             )
+
+'''
+'''
+
+    spec_dict = {}
+    spec_dict['name'] = "AMP"
+    spec_dict['gain_reference_file'] = component_path + "/data/amp/amp.S2P"
+
+    spec_dict['gain_file_units'] = "MHz"
+    spec_dict['gain_file_skiprows'] = 5
+    spec_dict['gain_row'] = 3
+
+    spec_dict['amplifier_reference_file'] = component_path + "/data/amp/ampNOISE.txt"
+    spec_dict['amplifier_file_skiprows'] = 2    
+    spec_dict['amplifier_units'] = "MHz"
+    spec_dict['NF_row'] = 6
+    spec_dict['comp_row'] = -1
+    spec_dict['OIP3_row'] = -3
+
+
+    lna = Amplifier(**spec_dict)
 
 
 TEST_FREQ = np.linspace(0.1e6, 3200.e6, 32000)
