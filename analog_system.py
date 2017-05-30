@@ -288,7 +288,6 @@ def build_high875_filter():
     
 
 def build_FM_filter():
-    fm_filter = 
     
     return Filter(name="FM_filter",
                        gain_reference_file=component_path + "/data/fm_filter/FM_filter_25deg.S2P", 
@@ -424,7 +423,6 @@ FM_FILTER = Filter(name="FM_filter",
                    gain_file_units="MHz")
    
 
-#TEST_FREQ = np.linspace(0.1e6, 3200.e6, 3200)
 TEST_AMP = Amplifier(name="test_amp",
                      gain_reference_file=component_path + "/data/test_amp/ampNOISE.txt",
                      gain_file_skiprows=1,
@@ -451,78 +449,3 @@ for i in [1, 2, 3, 5, 6, 8, 9]:
              )
 
   BP_filters.append(BP)
-
-'''
-BP_1 = Filter(name="mnt_tuned_1", 
-              gain_reference_file=\
-              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P1.s2p",
-              gain_file_skiprows=15,
-              gain_row=3,
-              gain_file_units="Hz"
-             )
-
-BP_2 = Filter(name="mnt_tuned_2", 
-              gain_reference_file=\
-              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P2.s2p",
-              gain_file_skiprows=15,
-              gain_row=3,
-              gain_file_units="Hz"
-             )
-
-BP_3 = Filter(name="mnt_tuned_3", 
-              gain_reference_file=\
-              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P3.s2p",
-              gain_file_skiprows=15,
-              gain_row=3,
-              gain_file_units="Hz"
-             )
-
-BP_4 = Filter(name="mnt_tuned_4", 
-              gain_reference_file=\
-              "/home/sean/work/cosmology/suit/analog_files/data/655_bandpass/P4.s2p",
-              gain_file_skiprows=15,
-              gain_row=3,
-              gain_file_units="Hz"
-             )
-
-'''
-'''
-
-    spec_dict = {}
-    spec_dict['name'] = "AMP"
-    spec_dict['gain_reference_file'] = component_path + "/data/amp/amp.S2P"
-
-    spec_dict['gain_file_units'] = "MHz"
-    spec_dict['gain_file_skiprows'] = 5
-    spec_dict['gain_row'] = 3
-
-    spec_dict['amplifier_reference_file'] = component_path + "/data/amp/ampNOISE.txt"
-    spec_dict['amplifier_file_skiprows'] = 2    
-    spec_dict['amplifier_units'] = "MHz"
-    spec_dict['NF_row'] = 6
-    spec_dict['comp_row'] = -1
-    spec_dict['OIP3_row'] = -3
-
-
-    lna = Amplifier(**spec_dict)
-
-
-TEST_FREQ = np.linspace(0.1e6, 3200.e6, 32000)
-TEST_AMP = AnalogComponent("test_amp (10dB)", "amplifier")
-TEST_AMP.set_data_array(TEST_FREQ, np.zeros(len(TEST_FREQ)) + 10.)
-TEST_AMP.set_noise_figure(TEST_FREQ, np.zeros(len(TEST_FREQ)) + 10 * np.log10(1 + 290. / 290.))
-
-TEST_FILTER = AnalogComponent("test_filter (-3dB)", "filter")
-TEST_FILTER.set_data_array(TEST_FREQ, np.zeros(len(TEST_FREQ)) - 3.)
-TEST_FILTER.fill_filter_noise_figure()
-
-TEST_ATTENUATOR = AnalogComponent("test_atten (-1dB)", "attenuator")
-TEST_ATTENUATOR.set_data_array(TEST_FREQ, np.zeros(len(TEST_FREQ)) -1.)
-TEST_ATTENUATOR.fill_attn_noise_figure()
-
-TEST_NOTCH = AnalogComponent("test_notch (600MHz)", "filter")
-NOTCH_GAIN = np.zeros(len(TEST_FREQ)) - 10.
-NOTCH_GAIN[(TEST_FREQ >= 590.e6) & (TEST_FREQ <= 610.e6)] = -3.
-TEST_NOTCH.set_data_array(TEST_FREQ, NOTCH_GAIN)
-TEST_NOTCH.fill_filter_noise_figure()
-'''
